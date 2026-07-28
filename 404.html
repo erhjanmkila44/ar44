@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title></title>
+  <style>
+    html,body{margin:0;height:100%;background:#111;color:#eee;font:16px/1.4 system-ui,sans-serif}
+    main{min-height:100%;display:flex;align-items:center;justify-content:center;display:none}
+    main.show{display:flex}
+    p{opacity:.7}
+  </style>
+  <script>
+(function () {
+  function show404() {
+    document.title = "404";
+    var m = document.getElementById("nf");
+    if (m) m.className = "show";
+  }
+
+  function pathUser() {
+    var parts = location.pathname.replace(/\/+$/, "").split("/").filter(Boolean);
+    // only /{username} — nested paths = 404
+    if (parts.length !== 1) return null;
+    var u = parts[0].toLowerCase();
+    if (!/^[a-z0-9._]{1,64}$/.test(u)) return null;
+    // reserved static names
+    if (u === "index.html" || u === "404.html" || u === "users.txt") return null;
+    return u;
+  }
+
+  function parseMap(text) {
+    var map = Object.create(null);
+    text.split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim();
+      if (!line || line.charAt(0) === "#") return;
+      var i = line.indexOf(":");
+      if (i < 1) return;
+      var user = line.slice(0, i).trim().replace(/^@/, "").toLowerCase();
+      var url = line.slice(i + 1).trim();
+      if (!/^[a-z0-9._]{1,64}$/.test(user)) return;
+      if (url.indexOf("http://") !== 0 && url.indexOf("https://") !== 0) return;
+      map[user] = url;
+    });
+    return map;
+  }
+
+  var user = pathUser();
+  if (!user) {
+    show404();
+    return;
+  }
+
+  fetch("/users.txt", { cache: "no-store" })
+    .then(function (r) {
+      if (!r.ok) throw new Error("map");
+      return r.text();
+    })
+    .then(function (text) {
+      var map = parseMap(text);
+      var url = map[user];
+      if (!url) {
+        show404();
+        return;
+      }
+      location.replace(url);
+    })
+    .catch(function () {
+      show404();
+    });
+})();
+  </script>
+</head>
+<body>
+  <main id="nf"><div><h1>404</h1><p>Not found.</p></div></main>
+</body>
+</html>
